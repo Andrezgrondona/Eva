@@ -3,6 +3,61 @@
 
 import { crearEventoCalendario } from './googleCalendar.js';
 
+const citasPendientes = new Map();
+
+export async function askEva(message, sessionId = 'default') {
+  const userInput = message.toLowerCase();
+
+  // Si el usuario ya recibió opciones, y está respondiendo con 1/2/3
+  if (citasPendientes.has(sessionId)) {
+    const opciones = citasPendientes.get(sessionId);
+
+    const selectedIndex = parseInt(userInput) - 1;
+    if (selectedIndex >= 0 && selectedIndex < opciones.length) {
+      const { fechaInicio, fechaFin, texto } = opciones[selectedIndex];
+      try {
+        const link = await crearEventoCalendario({
+          resumen: 'Asesoría con Antares',
+          descripcion: 'Cita automatizada con EVA',
+          fechaInicio,
+          fechaFin,
+        });
+        citasPendientes.delete(sessionId);
+        return `✨ Cita agendada para ${texto}.\nEste es tu enlace Meet: ${link}`;
+      } catch (err) {
+        return `❌ Hubo un error al agendar tu cita. Intenta más tarde.`;
+      }
+    } else {
+      return `😅 Opción inválida. Por favor responde con 1, 2 o 3.`;
+    }
+  }}
+
+  // Si el usuario quiere agendar cita
+  if (userInput.includes("agendar cita")) {
+    const now = new Date();
+    const opciones = [];
+
+    for (let i = 1; i <= 3; i++) {
+      const start = new Date(now.getTime() + i * 24 * 60 * 60 * 1000);
+      start.setHours(10 + i, 0, 0, 0);
+      const end = new Date(start.getTime() + 30 * 60000);
+
+      opciones.push({
+        texto: start.toLocaleString("es-CO", { weekday: 'long', hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' }),
+        fechaInicio: start.toISOString(),
+        fechaFin: end.toISOString(),
+      });
+    }
+
+    citasPendientes.set(sessionId, opciones);
+
+    const mensajeOpciones = opciones
+      .map((op, i) => `${i + 1}) ${op.texto}`)
+      .join("\n");
+
+    return `📅 Estas son mis próximas disponibilidades:\n${mensajeOpciones}\n\nResponde con el número para agendar.`;
+  }
+
 export async function askEva(message) {
   const systemPrompt = {
     role: "system",
