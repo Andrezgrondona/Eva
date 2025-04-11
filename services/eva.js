@@ -1,3 +1,8 @@
+
+
+
+import { crearEventoCalendario } from './googleCalendar.js';
+
 export async function askEva(message) {
   const systemPrompt = {
     role: "system",
@@ -100,7 +105,7 @@ Horario: L-V 9am-6pm"
 - Siempre ofrece opciones concretas (A/B/C)
 - Traduce tecnicismos a beneficios simples
 - Usa emojis profesionales (🚀 💡 ✨) moderadamente
-- Confirma datos antes de derivar a humano`,
+- Confirma datos antes de derivar a humano`
   };
 
   const userMessage = {
@@ -108,25 +113,39 @@ Horario: L-V 9am-6pm"
     content: message,
   };
 
-  const response = await fetch(
-    "https://openrouter.ai/api/v1/chat/completions",
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`, 
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "mistralai/mistral-7b-instruct",
-        messages: [systemPrompt, userMessage],
-      }),
+  // 🔁 Detección para agendar cita
+  if (message.toLowerCase().includes("agendar cita")) {
+    const now = new Date();
+    const fechaInicio = new Date(now.getTime() + 60 * 60000).toISOString(); // +1h
+    const fechaFin = new Date(now.getTime() + 90 * 60000).toISOString(); // +1.5h
+
+    try {
+      const link = await crearEventoCalendario({
+        resumen: 'Asesoría con Antares',
+        descripcion: 'Cita automatizada con EVA',
+        fechaInicio,
+        fechaFin
+      });
+
+      return `✅ Tu cita ha sido agendada. Aquí el enlace: ${link}`;
+    } catch (error) {
+      return `❌ No se pudo agendar la cita. Intenta más tarde.`;
     }
-  );
+  }
+
+  // Flujo normal de conversación
+  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "mistralai/mistral-7b-instruct",
+      messages: [systemPrompt, userMessage],
+    }),
+  });
 
   const data = await response.json();
-  const reply =
-    data.choices?.[0]?.message?.content.trim() ||
-    "No se pudo obtener una respuesta.";
-  return reply;
+  return data.choices?.[0]?.message?.content.trim() || "No se pudo obtener una respuesta.";
 }
-
