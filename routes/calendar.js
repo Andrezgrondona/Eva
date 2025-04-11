@@ -38,7 +38,7 @@
 // export default router;
 
 import { google } from 'googleapis';
-import oAuth2Client from './googleAuth.js';
+import oAuth2Client from '../services/googleAuth.js';
 
 export async function crearEventoCalendario({ resumen, descripcion, fechaInicio, fechaFin }) {
   const calendar = google.calendar({ version: 'v3', auth: oAuth2Client });
