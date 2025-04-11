@@ -230,34 +230,43 @@ Horario: L-V 9am-6pm"
     global.estadoAgendamiento = estadoAgendamiento;
 
     return `¡Listo! Tengo estas opciones para nuestra asesoría:
-1️⃣ Mañana a las 10:00am  
-2️⃣ Mañana a las 3:00pm  
-3️⃣ Pasado mañana a las 11:00am  
-Responde con 1, 2 o 3 para agendar la cita por Google Meet. 📅`;
+Detectar la intención de agendar
+
+Mostrar 3 opciones específicas de fecha/hora
+
+Aceptar respuestas flexibles como “mañana a las 3” o “opción 2”
+
+Crear el evento en Google Calendar
+
+Enviar el enlace de Google Meet de forma inmediata`;
   }
 
   // ✔️ Confirmación del cliente
-  if (estadoAgendamiento.opcionesOfrecidas && /^[123]$/.test(message.trim())) {
-    const index = parseInt(message.trim()) - 1;
-    const fechaInicio = new Date(estadoAgendamiento.opciones[index]);
-    const fechaFin = new Date(fechaInicio.getTime() + 30 * 60000); // 30 minutos
-
-    try {
-      const link = await crearEventoCalendario({
-        resumen: "Asesoría con Antares",
-        descripcion: "Cita automatizada con EVA",
-        fechaInicio: fechaInicio.toISOString(),
-        fechaFin: fechaFin.toISOString(),
-      });
-
-      global.estadoAgendamiento = {}; // Reset
-
-      return `✅ Cita agendada con éxito. Aquí tienes el enlace de conexión por Google Meet: ${link}  
-¡Te esperamos! 🚀`;
-    } catch (error) {
-      return `❌ Ocurrió un error al crear la cita. Por favor, intenta más tarde.`;
+  if (estadoAgendamiento.opcionesOfrecidas) {
+    const opcionDetectada = message.match(/(1|2|3)/);
+    if (opcionDetectada) {
+      const index = parseInt(opcionDetectada[1]) - 1;
+      const fechaInicio = new Date(estadoAgendamiento.opciones[index]);
+      const fechaFin = new Date(fechaInicio.getTime() + 30 * 60000); // 30 min
+  
+      try {
+        const link = await crearEventoCalendario({
+          resumen: "Asesoría con Antares",
+          descripcion: "Cita automatizada con EVA",
+          fechaInicio: fechaInicio.toISOString(),
+          fechaFin: fechaFin.toISOString(),
+        });
+  
+        global.estadoAgendamiento = {}; // Reset
+  
+        return `✅ Cita agendada con éxito. Aquí tienes el enlace de conexión por Google Meet: ${link}  
+  ¡Te esperamos! 🚀`;
+      } catch (error) {
+        return `❌ Ocurrió un error al crear la cita. Por favor, intenta más tarde.`;
+      }
     }
   }
+  
 
   // 💬 Flujo normal de conversación
   const response = await fetch(
