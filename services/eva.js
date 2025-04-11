@@ -1,62 +1,4 @@
-
-
-
-import { crearEventoCalendario } from './googleCalendar.js';
-
-const citasPendientes = new Map();
-
-export async function askEva(message, sessionId = 'default') {
-  const userInput = message.toLowerCase();
-
-  // Si el usuario ya recibió opciones, y está respondiendo con 1/2/3
-  if (citasPendientes.has(sessionId)) {
-    const opciones = citasPendientes.get(sessionId);
-
-    const selectedIndex = parseInt(userInput) - 1;
-    if (selectedIndex >= 0 && selectedIndex < opciones.length) {
-      const { fechaInicio, fechaFin, texto } = opciones[selectedIndex];
-      try {
-        const link = await crearEventoCalendario({
-          resumen: 'Asesoría con Antares',
-          descripcion: 'Cita automatizada con EVA',
-          fechaInicio,
-          fechaFin,
-        });
-        citasPendientes.delete(sessionId);
-        return `✨ Cita agendada para ${texto}.\nEste es tu enlace Meet: ${link}`;
-      } catch (err) {
-        return `❌ Hubo un error al agendar tu cita. Intenta más tarde.`;
-      }
-    } else {
-      return `😅 Opción inválida. Por favor responde con 1, 2 o 3.`;
-    }
-  }}
-
-  // Si el usuario quiere agendar cita
-  if (userInput.includes("agendar cita")) {
-    const now = new Date();
-    const opciones = [];
-
-    for (let i = 1; i <= 3; i++) {
-      const start = new Date(now.getTime() + i * 24 * 60 * 60 * 1000);
-      start.setHours(10 + i, 0, 0, 0);
-      const end = new Date(start.getTime() + 30 * 60000);
-
-      opciones.push({
-        texto: start.toLocaleString("es-CO", { weekday: 'long', hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' }),
-        fechaInicio: start.toISOString(),
-        fechaFin: end.toISOString(),
-      });
-    }
-
-    citasPendientes.set(sessionId, opciones);
-
-    const mensajeOpciones = opciones
-      .map((op, i) => `${i + 1}) ${op.texto}`)
-      .join("\n");
-
-    return `📅 Estas son mis próximas disponibilidades:\n${mensajeOpciones}\n\nResponde con el número para agendar.`;
-  }
+import { crearEventoCalendario } from "./googleCalendar.js";
 
 export async function askEva(message) {
   const systemPrompt = {
@@ -160,7 +102,7 @@ Horario: L-V 9am-6pm"
 - Siempre ofrece opciones concretas (A/B/C)
 - Traduce tecnicismos a beneficios simples
 - Usa emojis profesionales (🚀 💡 ✨) moderadamente
-- Confirma datos antes de derivar a humano`
+- Confirma datos antes de derivar a humano`,
   };
 
   const userMessage = {
@@ -176,10 +118,10 @@ Horario: L-V 9am-6pm"
 
     try {
       const link = await crearEventoCalendario({
-        resumen: 'Asesoría con Antares',
-        descripcion: 'Cita automatizada con EVA',
+        resumen: "Asesoría con Antares",
+        descripcion: "Cita automatizada con EVA",
         fechaInicio,
-        fechaFin
+        fechaFin,
       });
 
       return `✅ Tu cita ha sido agendada. Aquí el enlace: ${link}`;
@@ -189,18 +131,24 @@ Horario: L-V 9am-6pm"
   }
 
   // Flujo normal de conversación
-  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "mistralai/mistral-7b-instruct",
-      messages: [systemPrompt, userMessage],
-    }),
-  });
+  const response = await fetch(
+    "https://openrouter.ai/api/v1/chat/completions",
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "mistralai/mistral-7b-instruct",
+        messages: [systemPrompt, userMessage],
+      }),
+    }
+  );
 
   const data = await response.json();
-  return data.choices?.[0]?.message?.content.trim() || "No se pudo obtener una respuesta.";
+  return (
+    data.choices?.[0]?.message?.content.trim() ||
+    "No se pudo obtener una respuesta."
+  );
 }
